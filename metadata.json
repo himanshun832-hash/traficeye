@@ -1,0 +1,8 @@
+{
+  "name": "Traffic Eye",
+  "description": "Autonomous urban traffic operations HUD, smart live camera \u0026 file scanner with real-time ANPR number plate detection, acoustic noise enforcement, and violation management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

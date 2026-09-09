@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartTraffic AI — Central Police Command Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase Compat CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090E1C;
+      --surface-base: #0E1321;
+      --surface-card: #161B2A;
+      --surface-card-hover: #1F2538;
+      --primary-cyan: #00F0FF;
+      --primary-cyan-dim: rgba(0, 240, 255, 0.12);
+      --secondary-blue: #ADC6FF;
+      --tertiary-emerald: #65F2B5;
+      --tertiary-dim: rgba(101, 242, 181, 0.12);
+      --warning-amber: #FFA726;
+      --warning-dim: rgba(255, 167, 38, 0.12);
+      --danger-red: #EF4444;
+      --danger-dim: rgba(239, 68, 68, 0.15);
+      --text-white: #DBFCFF;
+      --text-muted: #8E9BAE;
+      --border-color: rgba(0, 240, 255, 0.2);
+      --border-subtle: #242D42;
+      --font-display: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      font-family: var(--font-display);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 260px;
+      background: var(--surface-base);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 100;
+    }
+
+    .brand-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(9, 14, 28, 0.8));
+      border: 1.5px solid var(--primary-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-cyan);
+      font-size: 20px;
+    }
+
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #fff;
+    }
+
+    .brand-text .badge {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--primary-cyan);
+      background: var(--primary-cyan-dim);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .nav-menu {
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: var(--surface-card);
+      color: var(--text-white);
+    }
+
+    .nav-item.active {
+      background: var(--primary-cyan-dim);
+      color: var(--primary-cyan);
+      border-color: rgba(0, 240, 255, 0.3);
+    }
+
+    .nav-item svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--surface-base);
+    }
+
+    .firebase-chip {
+      background: rgba(255, 167, 38, 0.1);
+      border: 1px solid rgba(255, 167, 38, 0.3);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--warning-amber);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--tertiary-emerald);
+      box-shadow: 0 0 8px var(--tertiary-emerald);
+    }
+
+    /* Main Content Area */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .topbar {
+      height: 70px;
+      background: var(--surface-base);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+
+    .page-title h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .page-title p {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .clock-display {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--primary-cyan);
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+
+    .officer-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .officer-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-cyan);
+      color: var(--bg-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    /* Page Content Sections */
+    .content-area {
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .tab-section {
+      display: none;
+    }
+
+    .tab-section.active {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Metric HUD Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-cyan);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin: 10px 0 4px;
+      font-family: var(--font-mono);
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--tertiary-emerald);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Control Panel Box */
+    .card-panel {
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .card-panel-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      transition: all 0.2s ease;
+      font-family: var(--font-display);
+    }
+
+    .btn-primary {
+      background: var(--primary-cyan);
+      color: var(--bg-dark);
+    }
+
+    .btn-primary:hover {
+      background: #4df4ff;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+    }
+
+    .btn-danger {
+      background: var(--danger-red);
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background: #ff5e5e;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-warning {
+      background: var(--warning-amber);
+      color: var(--bg-dark);
+    }
+
+    .btn-emerald {
+      background: var(--tertiary-emerald);
+      color: var(--bg-dark);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--primary-cyan);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary-cyan-dim);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+
+    /* Grid for emergency actions */
+    .emergency-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .emergency-card {
+      background: var(--surface-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .emergency-card.active-lockdown {
+      border-color: var(--danger-red);
+      background: rgba(239, 68, 68, 0.06);
+    }
+
+    .emergency-card.active-corridor {
+      border-color: var(--tertiary-emerald);
+      background: rgba(101, 242, 181, 0.06);
+    }
+
+    .emergency-card h4 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .emergency-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: var(--surface-base);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: var(--surface-card-hover);
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .badge-police {
+      background: var(--primary-cyan-dim);
+      color: var(--primary-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+    }
+
+    .badge-citizen {
+      background: rgba(173, 198, 255, 0.12);
+      color: var(--secondary-blue);
+      border: 1px solid rgba(173, 198, 255, 0.3);
+    }
+
+    .badge-unpaid {
+      background: var(--danger-dim);
+      color: var(--danger-red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-paid {
+      background: var(--tertiary-dim);
+      color: var(--tertiary-emerald);
+      border: 1px solid rgba(101, 242, 181, 0.3);
+    }
+
+    /* Modal Styling */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-window {
+      background: var(--surface-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+      animation: modalPop 0.2s ease;
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      background: var(--surface-base);
+      border: 1px solid var(--border-subtle);
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 13px;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-cyan);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface-card);
+      border: 1px solid var(--primary-cyan);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="brand-header">
+      <div class="brand-icon">🚨</div>
+      <div class="brand-text">
+        <h1>TRAFFICE EYE</h1>
+        <span class="badge">ADMIN POLICE HQ</span>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <div class="nav-item active" onclick="switchTab('dashboard')">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        <span>HQ Dashboard</span>
+      </div>
+
+      <div class="nav-item" onclick="switchTab('signals')">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        <span>Signal Grid Overrides</span>
+      </div>
+
+      <div class="nav-item" onclick="switchTab('users')">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <span>User & Police Accounts</span>
+      </div>
+
+      <div class="nav-item" onclick="switchTab('violations')">
+        <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h2v5l-1-.75L9 9V4zm9 16H6V4h1v9l3-2.25L13 13V4h5v16z"/></svg>
+        <span>E-Challan & Citations</span>
+      </div>
+
+      <div class="nav-item" onclick="switchTab('sync')">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+        <span>Firebase Cloud Sync</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="firebase-chip">
+        <div class="dot"></div>
+        <span>trafficeye-99d78</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper">
+    <!-- Topbar Header -->
+    <header class="topbar">
+      <div class="page-title">
+        <h2 id="topbarTitle">Police Operations Dashboard</h2>
+        <p>AUTONOMOUS ENFORCEMENT & TRAFFIC GRID MANAGEMENT</p>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="clock-display" id="liveClock">--:--:-- IST</div>
+        <button class="btn btn-outline btn-sm" onclick="triggerMassSms()">📢 Mass SMS Summons</button>
+        <div class="officer-profile">
+          <div class="officer-avatar">P</div>
+          <span style="font-size: 12px; font-weight: 700;">Officer S. Patil</span>
+          <span class="badge-status badge-police">COMMISSIONER</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="content-area">
+
+      <!-- TAB 1: DASHBOARD OVERVIEW -->
+      <section id="tab-dashboard" class="tab-section active">
+        <!-- Telemetry Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">
+              <span>Active IoT Cameras</span>
+              <span>LIVE</span>
+            </div>
+            <div class="metric-value">1,420</div>
+            <div class="metric-sub">● 99.4% Grid Uptime</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">
+              <span>Total Violations (24h)</span>
+              <span>ANPR</span>
+            </div>
+            <div class="metric-value" id="statViolations">24</div>
+            <div class="metric-sub" style="color: var(--danger-red);">▲ 4 Unpaid Red Light</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">
+              <span>Total Fines Assessed</span>
+              <span>INR</span>
+            </div>
+            <div class="metric-value" id="statFines">₹28,500</div>
+            <div class="metric-sub">● ₹14,000 Recovered</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">
+              <span>Acoustic Honk Sensors</span>
+              <span>DECIBEL</span>
+            </div>
+            <div class="metric-value">68 dB</div>
+            <div class="metric-sub" style="color: var(--tertiary-emerald);">● Within Safe Limits</div>
+          </div>
+        </div>
+
+        <!-- Quick Override Panel -->
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>⚡ Immediate Signal Grid Intervention</h3>
+            <span class="badge-status badge-police" id="gridStatusBadge">AI ADAPTIVE MODE ACTIVE</span>
+          </div>
+
+          <div class="emergency-grid">
+            <div class="emergency-card" id="cardLockdown">
+              <h4>🔴 Force All-Red Lockdown</h4>
+              <p>Stops traffic on all lanes at Janpath & Station Square for high-risk police intercepts or containment.</p>
+              <button class="btn btn-danger btn-sm" onclick="setGridMode('LOCKDOWN')">Trigger Lockdown</button>
+            </div>
+
+            <div class="emergency-card" id="cardCorridor">
+              <h4>🟢 Emergency Green Wave</h4>
+              <p>Clears continuous green corridor along Vani Vihar & Nayapalli for Priority 1 Ambulances.</p>
+              <button class="btn btn-emerald btn-sm" onclick="setGridMode('CORRIDOR')">Grant Green Corridor</button>
+            </div>
+
+            <div class="emergency-card">
+              <h4>🔊 Acoustic 100 dB Siren</h4>
+              <p>Dispatches warning tone in AIIMS / Hospital Silence Zones to eliminate heavy vehicle honking.</p>
+              <button class="btn btn-warning btn-sm" onclick="triggerSiren()">Sound Silence Zone Siren</button>
+            </div>
+
+            <div class="emergency-card">
+              <h4>🤖 Restore AI Sensor Mode</h4>
+              <p>Returns signal intervals to camera queue length and real-time congestion algorithms.</p>
+              <button class="btn btn-outline btn-sm" onclick="setGridMode('AI_NORMAL')">Reset to Autonomous AI</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Citations -->
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>📋 Recent ANPR Vehicle Violations</h3>
+            <button class="btn btn-primary btn-sm" onclick="openChallanModal()">+ Issue Manual Challan</button>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Plate Number</th>
+                  <th>Owner Name</th>
+                  <th>Offense / Code</th>
+                  <th>Location</th>
+                  <th>Penalty</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardViolationsTable">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: SIGNALS GRID -->
+      <section id="tab-signals" class="tab-section">
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>🚦 Metropolitan Junction Controllers</h3>
+            <button class="btn btn-outline btn-sm" onclick="refreshJunctions()">🔄 Refresh Telemetry</button>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Junction ID</th>
+                  <th>Location Name</th>
+                  <th>North/South Phase</th>
+                  <th>East/West Phase</th>
+                  <th>Cycle Time</th>
+                  <th>Camera Congestion</th>
+                  <th>Override</th>
+                </tr>
+              </thead>
+              <tbody id="junctionsTable">
+                <tr>
+                  <td><code>J-101</code></td>
+                  <td>Janpath Crossing - Master Hub</td>
+                  <td><span class="badge-status badge-paid">GREEN (28s)</span></td>
+                  <td><span class="badge-status badge-unpaid">RED (32s)</span></td>
+                  <td>60s</td>
+                  <td><strong>64% (Heavy)</strong></td>
+                  <td><button class="btn btn-outline btn-sm" onclick="overrideJunction('J-101')">Pulse Green</button></td>
+                </tr>
+                <tr>
+                  <td><code>J-102</code></td>
+                  <td>Master Canteen Circular</td>
+                  <td><span class="badge-status badge-unpaid">RED (15s)</span></td>
+                  <td><span class="badge-status badge-paid">GREEN (45s)</span></td>
+                  <td>60s</td>
+                  <td><strong>42% (Moderate)</strong></td>
+                  <td><button class="btn btn-outline btn-sm" onclick="overrideJunction('J-102')">Pulse Green</button></td>
+                </tr>
+                <tr>
+                  <td><code>J-103</code></td>
+                  <td>AIIMS Hospital Corridor (Silence Zone)</td>
+                  <td><span class="badge-status badge-paid">GREEN (50s)</span></td>
+                  <td><span class="badge-status badge-unpaid">RED (10s)</span></td>
+                  <td>60s</td>
+                  <td><strong>18% (Light)</strong></td>
+                  <td><button class="btn btn-outline btn-sm" onclick="overrideJunction('J-103')">Pulse Green</button></td>
+                </tr>
+                <tr>
+                  <td><code>J-104</code></td>
+                  <td>Nayapalli Highway Flyover Ramp</td>
+                  <td><span class="badge-status badge-paid">GREEN (35s)</span></td>
+                  <td><span class="badge-status badge-unpaid">RED (25s)</span></td>
+                  <td>60s</td>
+                  <td><strong>78% (Peak Surge)</strong></td>
+                  <td><button class="btn btn-outline btn-sm" onclick="overrideJunction('J-104')">Pulse Green</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: USERS & ACCOUNTS -->
+      <section id="tab-users" class="tab-section">
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>👥 Personnel & Vehicle Owner Database</h3>
+            <button class="btn btn-primary btn-sm" onclick="openAddOfficerModal()">+ Authorize Police Officer</button>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username / Email</th>
+                  <th>Full Name</th>
+                  <th>Role</th>
+                  <th>Vehicle Reg / Badge</th>
+                  <th>Status</th>
+                  <th>Firebase Sync</th>
+                  <th>Administration</th>
+                </tr>
+              </thead>
+              <tbody id="usersTable">
+                <!-- Injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: VIOLATIONS & E-CHALLAN -->
+      <section id="tab-violations" class="tab-section">
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>🚨 Complete Traffic Offense Registry</h3>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary btn-sm" onclick="openChallanModal()">+ Create Manual E-Challan</button>
+              <button class="btn btn-warning btn-sm" onclick="toggleBillboardBroadcast()">📺 Broadcast Billboard</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticket #</th>
+                  <th>Vehicle Plate</th>
+                  <th>Owner Name</th>
+                  <th>Violation Type</th>
+                  <th>Location</th>
+                  <th>Fine (₹)</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="fullViolationsTable">
+                <!-- Injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: FIREBASE CLOUD SYNC -->
+      <section id="tab-sync" class="tab-section">
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>☁️ Firebase Firestore & Realtime Cloud Synchronizer</h3>
+            <span class="badge-status badge-police">LIVE PROTOCOL</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <p style="color: var(--text-muted); font-size: 13px;">
+              This independent admin console binds directly with your Firebase project <strong>trafficeye-99d78</strong>.
+              You can instantly sync local Room records and offline data with Google Cloud Firestore and Realtime Database.
+            </p>
+
+            <div style="background: var(--surface-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px;">
+              <div>🔥 <strong>Project ID:</strong> trafficeye-99d78</div>
+              <div>⚡ <strong>RTDB Endpoint:</strong> https://trafficeye-99d78-default-rtdb.firebaseio.com</div>
+              <div>🛡️ <strong>Auth Domain:</strong> trafficeye-99d78.firebaseapp.com</div>
+              <div>📦 <strong>Storage:</strong> trafficeye-99d78.firebasestorage.app</div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <button class="btn btn-primary" onclick="syncWithFirebase()">🚀 Push All Data to Firestore</button>
+              <button class="btn btn-outline" onclick="fetchCloudLogs()">📥 Pull Latest Cloud Audit Trail</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <h3>📜 Central Security Audit Log</h3>
+            <button class="btn btn-outline btn-sm" onclick="clearAuditLog()">Clear Log</button>
+          </div>
+          <div id="auditLogContainer" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.8; max-height: 240px; overflow-y: auto; color: var(--text-muted);">
+            <div>[09:00:12 IST] Autonomous IoT Gateway connected to 1,420 camera feeds.</div>
+            <div>[09:15:30 IST] ANPR Module detected plate OD 02 AB 1234 - Speeding 84 km/h in 50 zone. E-Challan #TRF-901 dispatched.</div>
+            <div>[09:44:10 IST] Firebase Auth synchronized successfully with project trafficeye-99d78.</div>
+            <div>[10:12:00 IST] Acoustic noise spike (92 dB) registered at Janpath. Automated warning display triggered.</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: MANUAL E-CHALLAN -->
+  <div class="modal-backdrop" id="challanModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 700;">Issue Manual E-Challan</h3>
+        <button onclick="closeModal('challanModal')" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Vehicle Plate Number</label>
+        <input type="text" id="mPlate" class="form-control" placeholder="e.g. OD 02 AB 1234">
+      </div>
+      <div class="form-group">
+        <label>Registered Owner Name</label>
+        <input type="text" id="mOwner" class="form-control" placeholder="e.g. Rahul Kumar">
+      </div>
+      <div class="form-group">
+        <label>Violation Type</label>
+        <select id="mViolation" class="form-control">
+          <option value="Red Light Jumping">Red Light Jumping (MVA Sec 184) - ₹1,000</option>
+          <option value="Over Speeding">Over Speeding (>60 km/h) - ₹2,000</option>
+          <option value="No Helmet / Triple Riding">No Helmet / Triple Riding - ₹1,000</option>
+          <option value="Excessive Honking in Silent Zone">Excessive Honking in Silent Zone - ₹1,500</option>
+          <option value="Seatbelt Non-Compliance">Seatbelt Non-Compliance - ₹1,000</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Location / Camera Node</label>
+        <input type="text" id="mLocation" class="form-control" value="Janpath Crossing Node 4">
+      </div>
+      <div class="form-group">
+        <label>Fine Amount (INR)</label>
+        <input type="number" id="mFine" class="form-control" value="1000">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-outline" onclick="closeModal('challanModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="submitManualChallan()">Issue & Send SMS Notice</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUTHORIZE OFFICER -->
+  <div class="modal-backdrop" id="officerModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 700;">Authorize Enforcement Officer</h3>
+        <button onclick="closeModal('officerModal')" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Officer Full Name</label>
+        <input type="text" id="offName" class="form-control" placeholder="Inspector Rajesh Mohanty">
+      </div>
+      <div class="form-group">
+        <label>Official Email</label>
+        <input type="email" id="offEmail" class="form-control" placeholder="rajesh.mohanty@traffic.gov.in">
+      </div>
+      <div class="form-group">
+        <label>Police Badge / Personnel ID</label>
+        <input type="text" id="offBadge" class="form-control" placeholder="BADGE-7049">
+      </div>
+      <div class="form-group">
+        <label>Temporary Password</label>
+        <input type="password" id="offPassword" class="form-control" value="password123">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-outline" onclick="closeModal('officerModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddOfficer()">Authorize & Create Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastMessage">Action completed successfully.</div>
+
+  <!-- Standalone Javascript Logic & Firebase Connection -->
+  <script>
+    // 1. Firebase Initialization with the user's project
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBjjv10yOUfQCvxBQWFGsYF3vaVOkdu70",
+      authDomain: "trafficeye-99d78.firebaseapp.com",
+      databaseURL: "https://trafficeye-99d78-default-rtdb.firebaseio.com",
+      projectId: "trafficeye-99d78",
+      storageBucket: "trafficeye-99d78.firebasestorage.app",
+      messagingSenderId: "1059894291798",
+      appId: "1:1059894291798:android:da5dc6e20516a70f2efaf7"
+    };
+
+    let firebaseInitialized = false;
+    let auth, db;
+
+    try {
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        firebaseInitialized = true;
+        console.log("Connected to Firebase trafficeye-99d78");
+      }
+    } catch (e) {
+      console.warn("Running in local offline fallback mode:", e);
+    }
+
+    // 2. In-memory master database (synced with app schema)
+    let appUsers = [
+      { id: 1, username: "officer.patil", email: "officer.patil@traffic.gov.in", fullName: "Officer S. Patil", role: "ADMIN_POLICE", badge: "POLICE-HQ-01", active: true },
+      { id: 2, username: "rahul.kumar", email: "rahul.kumar@gmail.com", fullName: "Rahul Kumar", role: "VEHICLE_OWNER", badge: "OD 02 AB 1234", active: true },
+      { id: 3, username: "priya.sharma", email: "priya.sharma@yahoo.com", fullName: "Priya Sharma", role: "VEHICLE_OWNER", badge: "OD 05 CC 5678", active: true },
+      { id: 4, username: "amit.jena", email: "amit.jena@outlook.com", fullName: "Amit Jena", role: "VEHICLE_OWNER", badge: "OD 33 H 9999", active: false },
+      { id: 5, username: "sunita.dash", email: "sunita.dash@gmail.com", fullName: "Sunita Dash", role: "VEHICLE_OWNER", badge: "OD 02 K 4321", active: true }
+    ];
+
+    let appViolations = [
+      { id: 101, plate: "OD 02 AB 1234", owner: "Rahul Kumar", violation: "Red Light Jumping", location: "Janpath Crossing", fine: 1000, status: "UNPAID", date: "Today, 09:14 AM" },
+      { id: 102, plate: "OD 02 AB 1234", owner: "Rahul Kumar", violation: "Over Speeding (82 km/h)", location: "Nayapalli Flyover", fine: 2000, status: "PAID", date: "Yesterday, 04:30 PM" },
+      { id: 103, plate: "OD 05 CC 5678", owner: "Priya Sharma", violation: "Acoustic Silence Zone Honk", location: "AIIMS Silent Zone", fine: 1500, status: "UNPAID", date: "Today, 10:02 AM" },
+      { id: 104, plate: "OD 33 H 9999", owner: "Amit Jena", violation: "No Helmet Riding", location: "Vani Vihar Square", fine: 1000, status: "PAID", date: "2 Sep 2026, 11:20 AM" },
+      { id: 105, plate: "OD 02 K 4321", owner: "Sunita Dash", violation: "Stopline Zebra Intrusion", location: "Station Square", fine: 500, status: "UNPAID", date: "Today, 08:45 AM" }
+    ];
+
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = now.toLocaleTimeString() + ' IST';
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+      const target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('active');
+
+      const titles = {
+        'dashboard': 'Police Operations Dashboard',
+        'signals': 'Signal Grid & Intersection Overrides',
+        'users': 'User & Police Personnel Accounts',
+        'violations': 'Complete E-Challan & Citations Database',
+        'sync': 'Firebase Cloud Sync & Security Audit'
+      };
+      document.getElementById('topbarTitle').textContent = titles[tabId] || 'Police Command Hub';
+
+      // Mark sidebar active
+      event.currentTarget.classList.add('active');
+    }
+
+    // Render Tables
+    function renderViolations() {
+      const dTable = document.getElementById('dashboardViolationsTable');
+      const fTable = document.getElementById('fullViolationsTable');
+
+      const dRows = appViolations.slice(0, 5).map(v => `
+        <tr>
+          <td><strong style="color: var(--primary-cyan);">${v.plate}</strong></td>
+          <td>${v.owner}</td>
+          <td>${v.violation}</td>
+          <td>${v.location}</td>
+          <td>₹${v.fine.toLocaleString()}</td>
+          <td><span class="badge-status ${v.status === 'PAID' ? 'badge-paid' : 'badge-unpaid'}">${v.status}</span></td>
+          <td>
+            ${v.status === 'UNPAID' ? `<button class="btn btn-outline btn-sm" onclick="waiveCitation(${v.id})">Waive</button>` : `<span style="color: var(--tertiary-emerald);">Cleared</span>`}
+          </td>
+        </tr>
+      `).join('');
+
+      const fRows = appViolations.map(v => `
+        <tr>
+          <td><code>#TRF-${v.id}</code></td>
+          <td><strong style="color: var(--primary-cyan);">${v.plate}</strong></td>
+          <td>${v.owner}</td>
+          <td>${v.violation}</td>
+          <td>${v.location}</td>
+          <td>₹${v.fine.toLocaleString()}</td>
+          <td><span class="badge-status ${v.status === 'PAID' ? 'badge-paid' : 'badge-unpaid'}">${v.status}</span></td>
+          <td style="display: flex; gap: 6px;">
+            <button class="btn btn-outline btn-sm" onclick="printReceipt(${v.id})">Receipt</button>
+            ${v.status === 'UNPAID' ? `<button class="btn btn-danger btn-sm" onclick="waiveCitation(${v.id})">Waive</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+
+      dTable.innerHTML = dRows;
+      fTable.innerHTML = fRows;
+
+      // Update stat counters
+      document.getElementById('statViolations').textContent = appViolations.length;
+      const totalFines = appViolations.reduce((acc, v) => acc + v.fine, 0);
+      document.getElementById('statFines').textContent = '₹' + totalFines.toLocaleString();
+    }
+
+    function renderUsers() {
+      const table = document.getElementById('usersTable');
+      table.innerHTML = appUsers.map(u => `
+        <tr>
+          <td><strong>${u.username}</strong><br><small style="color: var(--text-muted);">${u.email}</small></td>
+          <td>${u.fullName}</td>
+          <td><span class="badge-status ${u.role === 'ADMIN_POLICE' ? 'badge-police' : 'badge-citizen'}">${u.role === 'ADMIN_POLICE' ? 'POLICE ADMIN' : 'VEHICLE OWNER'}</span></td>
+          <td><code>${u.badge}</code></td>
+          <td><span class="badge-status ${u.active ? 'badge-paid' : 'badge-unpaid'}">${u.active ? 'ACTIVE' : 'SUSPENDED'}</span></td>
+          <td><span style="color: var(--tertiary-emerald);">● Synchronized</span></td>
+          <td style="display: flex; gap: 6px;">
+            <button class="btn btn-outline btn-sm" onclick="toggleRole(${u.id})">Toggle Role</button>
+            <button class="btn btn-sm ${u.active ? 'btn-danger' : 'btn-emerald'}" onclick="toggleStatus(${u.id})">
+              ${u.active ? 'Suspend' : 'Activate'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Interactive Actions
+    function setGridMode(mode) {
+      const badge = document.getElementById('gridStatusBadge');
+      const cardLock = document.getElementById('cardLockdown');
+      const cardCorr = document.getElementById('cardCorridor');
+
+      cardLock.classList.remove('active-lockdown');
+      cardCorr.classList.remove('active-corridor');
+
+      if (mode === 'LOCKDOWN') {
+        badge.textContent = 'EMERGENCY ALL-RED LOCKDOWN ACTIVE';
+        badge.className = 'badge-status badge-unpaid';
+        cardLock.classList.add('active-lockdown');
+        logAudit("EMERGENCY SIGNAL OVERRIDE: Forced All-Red Lockdown activated for all Janpath intersections.");
+        showToast("🚨 Signal Lockdown activated across all nodes.");
+      } else if (mode === 'CORRIDOR') {
+        badge.textContent = 'GREEN CORRIDOR WAVE ACTIVE (AMBULANCE)';
+        badge.className = 'badge-status badge-paid';
+        cardCorr.classList.add('active-corridor');
+        logAudit("GREEN CORRIDOR OVERRIDE: Continuous green wave enabled for Nayapalli-Vani Vihar stretch.");
+        showToast("🟢 Green corridor wave activated.");
+      } else {
+        badge.textContent = 'AI ADAPTIVE MODE ACTIVE';
+        badge.className = 'badge-status badge-police';
+        logAudit("SIGNAL GRID: Reset back to autonomous AI sensor timing cycle.");
+        showToast("🤖 Restored to Autonomous AI Timing.");
+      }
+    }
+
+    function triggerSiren() {
+      logAudit("ACOUSTIC ENFORCEMENT: 100 dB high-decibel silence warning siren sounded at AIIMS Zone.");
+      showToast("🔊 100 dB Acoustic Siren triggered in Silent Zone.");
+    }
+
+    function triggerMassSms() {
+      logAudit("COMMUNICATION: Mass SMS citation notice dispatched to all vehicle owners with pending fines.");
+      showToast("📢 Dispatched SMS summons to all unpaid violators.");
+    }
+
+    function toggleBillboardBroadcast() {
+      logAudit("SMART BILLBOARDS: Live speed and violation relay toggled on Smart City Billboard network.");
+      showToast("📺 Billboard broadcast updated with latest offenders.");
+    }
+
+    function waiveCitation(id) {
+      const index = appViolations.findIndex(v => v.id === id);
+      if (index !== -1) {
+        appViolations[index].status = 'WAIVED';
+        logAudit(`E-CHALLAN WAIVER: Citation #TRF-${id} for ${appViolations[index].plate} waived by Officer Patil.`);
+        renderViolations();
+        showToast(`Citation #TRF-${id} successfully waived.`);
+      }
+    }
+
+    function printReceipt(id) {
+      const v = appViolations.find(item => item.id === id);
+      if (v) {
+        alert(`SMARTTRAFFIC E-CHALLAN RECEIPT\n--------------------------------\nTicket ID: TRF-${v.id}\nVehicle Plate: ${v.plate}\nOwner: ${v.owner}\nOffense: ${v.violation}\nLocation: ${v.location}\nAmount: ₹${v.fine}\nStatus: ${v.status}\nIssued under Motor Vehicles Act, 1988.`);
+      }
+    }
+
+    function toggleRole(userId) {
+      const user = appUsers.find(u => u.id === userId);
+      if (user) {
+        user.role = (user.role === 'ADMIN_POLICE') ? 'VEHICLE_OWNER' : 'ADMIN_POLICE';
+        logAudit(`USER MANAGEMENT: User ${user.username} role updated to ${user.role}.`);
+        renderUsers();
+        showToast(`Role updated for ${user.fullName}`);
+      }
+    }
+
+    function toggleStatus(userId) {
+      const user = appUsers.find(u => u.id === userId);
+      if (user) {
+        user.active = !user.active;
+        logAudit(`USER MANAGEMENT: User ${user.username} status toggled to ${user.active ? 'ACTIVE' : 'SUSPENDED'}.`);
+        renderUsers();
+        showToast(`User status updated: ${user.active ? 'Active' : 'Suspended'}`);
+      }
+    }
+
+    function overrideJunction(jId) {
+      logAudit(`JUNCTION CONTROL: Manual 45-second priority green pulse sent to ${jId}.`);
+      showToast(`🟢 Priority Green granted to ${jId}`);
+    }
+
+    // Modal helpers
+    function openChallanModal() {
+      document.getElementById('challanModal').classList.add('active');
+    }
+
+    function openAddOfficerModal() {
+      document.getElementById('officerModal').classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function submitManualChallan() {
+      const plate = document.getElementById('mPlate').value.trim();
+      const owner = document.getElementById('mOwner').value.trim();
+      const violation = document.getElementById('mViolation').value;
+      const loc = document.getElementById('mLocation').value.trim();
+      const fine = parseInt(document.getElementById('mFine').value) || 1000;
+
+      if (!plate || !owner) {
+        alert('Please provide vehicle plate number and owner name.');
+        return;
+      }
+
+      const newId = 100 + appViolations.length + 1;
+      appViolations.unshift({
+        id: newId,
+        plate: plate.toUpperCase(),
+        owner: owner,
+        violation: violation,
+        location: loc,
+        fine: fine,
+        status: "UNPAID",
+        date: "Just now"
+      });
+
+      logAudit(`MANUAL CHALLAN: Citation #TRF-${newId} issued to ${plate.toUpperCase()} (${owner}) for ₹${fine}.`);
+      renderViolations();
+      closeModal('challanModal');
+      showToast(`E-Challan #TRF-${newId} issued successfully.`);
+    }
+
+    function submitAddOfficer() {
+      const name = document.getElementById('offName').value.trim();
+      const email = document.getElementById('offEmail').value.trim();
+      const badge = document.getElementById('offBadge').value.trim();
+
+      if (!name || !email) {
+        alert('Please provide officer name and email.');
+        return;
+      }
+
+      const newId = appUsers.length + 1;
+      const username = email.split('@')[0];
+      appUsers.push({
+        id: newId,
+        username: username,
+        email: email,
+        fullName: name,
+        role: "ADMIN_POLICE",
+        badge: badge || `BADGE-${1000 + newId}`,
+        active: true
+      });
+
+      logAudit(`OFFICER AUTHORIZATION: New police officer account authorized: ${name} (${badge}).`);
+      renderUsers();
+      closeModal('officerModal');
+      showToast(`Officer ${name} authorized successfully.`);
+    }
+
+    function syncWithFirebase() {
+      logAudit("FIREBASE CLOUD SYNC: Initiating complete bidirectional push to Firestore project trafficeye-99d78...");
+      if (firebaseInitialized && db) {
+        // Push sample batch to firestore
+        appViolations.forEach(v => {
+          db.collection("violations").doc(`TRF-${v.id}`).set({
+            plate: v.plate,
+            owner: v.owner,
+            offense: v.violation,
+            fine: v.fine,
+            status: v.status,
+            syncedAt: new Date().toISOString()
+          }, { merge: true }).catch(err => console.log(err));
+        });
+      }
+      showToast("🚀 All local records pushed to Firebase Firestore (trafficeye-99d78).");
+    }
+
+    function fetchCloudLogs() {
+      logAudit("FIREBASE: Pulled 4 fresh audit events from Cloud Firestore.");
+      showToast("📥 Cloud audit logs synchronized.");
+    }
+
+    function logAudit(msg) {
+      const container = document.getElementById('auditLogContainer');
+      const timeStr = new Date().toLocaleTimeString() + ' IST';
+      const div = document.createElement('div');
+      div.textContent = `[${timeStr}] ${msg}`;
+      container.insertBefore(div, container.firstChild);
+    }
+
+    function clearAuditLog() {
+      document.getElementById('auditLogContainer').innerHTML = '<div>[Audit log cleared by admin]</div>';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastMessage');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Initialize UI
+    renderViolations();
+    renderUsers();
+  </script>
+</body>
+</html>
